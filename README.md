@@ -1,7 +1,6 @@
 # Gateway SMS
 
-Este software toma conta do envio, confirmação e recebimento de mensagens SMS. Trabalha da forma mais autônoma possível, minimizando a necessidade de manutenção. O ideal é rodar o servidor num container próprio, como por exemplo uma máquina na nuvem, separada da rede corporativa, devido
-a necessidade de receber conexões entrantes (dependendo da configuração).
+Este software toma conta do envio, confirmação e recebimento de mensagens SMS. Trabalha da forma mais autônoma possível, minimizando a necessidade de manutenção.
 
 O software foi concebido para trabalhar com diversos provedores de SMS ao mesmo tempo (por exemplo Zenvia, MobiPronto, ou mesmo
 diretamente com as operadoras de telefonia). No momento há apenas um provedor implementado (Zenvia).
@@ -15,21 +14,24 @@ seria parecida para qualquer outro provedor, desde que a interface já esteja im
 
 Para colocar o servidor no ar, a lista básica de tarefas é a seguinte:
 
-1) Instalar este software num servidor. Se fizer uso de call-back (vide item 3) o servidor deve ser uma máquina com IP fixo,
+1) Instalar este software num servidor.
+
+O ideal é rodar o servidor num container próprio, como por exemplo uma máquina na nuvem, separada da rede corporativa.
+Se fizer uso de call-back (vide item 3) o servidor deve ser uma máquina com IP fixo,
 nome DNS e porta 33774 aceitando conexões de fora.
 
 2) Obter uma conta com a Zenvia. (O provedor oferece contas de teste com 10 créditos.)
 
 3) Configurar corretamente a sua conta junto ao Zenvia.
 
-A interface implementada por este software com o provedor Zenvia usa a API HTTP.
+Este software faz uso da API HTTP do Zenvia. (O provedor oferece outras opções, como envio de arquivos via Web e REST.)
 
-Uma decisão que deve ser tomada é quanto ao recebimento de confirmações: por consulta periódica ou por
-call-back. Se você também receber mensagens SMS dos clientes, é obrigatório usar call-back. No modo call-back,
+As confirmações de entrega podem ser recebidas por consulta periódica ou por
+call-back. Se você quer receber mensagens SMS dos clientes, é obrigatório usar call-back. No modo call-back,
 o servidor da Zenvia abre uma conexão com o servidor, por isso é necessário ter IP fixo, nome DNS e
 porta 33774 liberada nesse modo.
 
-Se você usar call-back, é preciso contactar a Zenvia para configurar as URLs de call-back,
+Se você usar call-back, é preciso contactar a Zenvia para configurar as URLs de call-back para a sua conta,
 que seriam algo como http://sms.seudominio.com:33774/statussms (para receber as confirmações de
 entrega) e http://sms.seudominio.com:33774/recebsms (para receber mensagens de clientes).
 Substitua o domínio sms.seudominio.com pelo nome DNS do seu servidor ou mesmo pelo IP fixo.
@@ -51,15 +53,15 @@ jogue na pasta INBOX e execute o programa sms.py.
 Se tudo correr bem, a mensagem será entregue. Se não, consulte o log na pasta LOG para ver o que aconteceu.
 
 Se você optou por usar call-back, rode o executável servidor.py, e envie um lote de teste para um celular que 
-você possa usar. A confirmação deve ser entregue através dele, o que pode ser verificado no log.
+você possa usar. A confirmação deve ser entregue por conexão entrante, o que pode ser verificado no log.
 
 Você também deve testar a recepção de mensagens do cliente, enviando um SMS de resposta a partir do celular
 que recebeu a mensagem do lote.
 
-(A princípio, só é possível receber mensagens de celulares a quem foi enviado um SMS, como se fosse uma
-"resposta" ao SMS do lote. É possível receber mensagens de clientes sem ser de resposta, como por exemplo
-uma consulta automatizada, mas nesse caso é preciso contratar um número exclusivo para sua empresa junto
-à Zenvia, e os clientes poderão então enviar consultas a esse número.)
+(A princípio, só é possível receber SMS de "resposta", onde seu cliente responde a um SMS que você enviou.
+É possível receber mensagens sem ser de resposta, como por exemplo uma consulta automatizada, mas nesse
+caso é preciso contratar um número exclusivo para sua empresa junto à Zenvia, e os clientes poderão então
+enviar consultas a esse número.)
 
 6) Colocar o servidor em produção
 
@@ -95,13 +97,13 @@ alguém para verificar que o SMS está chegando.
 
 Formato CSV, uma linha por mensagem, campos separados por ponto-e-vírgula e sem aspas. 
 
-ID,charset,telefone,dd/mm/aaaa hh:mm:ss,mensagem
+ID;charset;telefone;dd/mm/aaaa hh:mm:ss;mensagem
 
 ID é um identificador único para cada mensagem. Pode ser de qualquer natureza (contador, hash, etc.) mas deve identificar unicamente a mensagem por um tempo razoável. O tamanho é livre mas o ideal é usar 16 caracteres ou menos. 
 
-Idealmente, o ID deve ser único para sempre, para permitir rastreio de cada mensagem dentro dos logs. Se várias mensagens com o mesmo ID entrarem no sistema, apenas uma versão será mandada e confirmada.
+Idealmente, o ID deve ser único para sempre, para permitir rastreio de cada mensagem dentro dos logs. Se várias mensagens com o mesmo ID entrarem no sistema durante a janela de confirmação (48h), apenas uma versão será mandada e confirmada.
 
-O charset é a forma que os caracteres acentuados são codificados na mensagem. Se a mensagem não tem acentos, utilize ascii. De maneira geral as mensagens SMS não deveriam ser acentuadas, nem utilizar caracteres especiais. Veja a seção “Formato das mensagens SMS” para mais detalhes.
+O charset é a forma que os caracteres acentuados são codificados na mensagem. Se a mensagem não tem acentos, utilize ascii. De maneira geral as mensagens SMS não devem ser acentuadas, nem utilizar caracteres especiais. Veja a seção “Formato das mensagens SMS” para mais detalhes.
 
 O telefone é simplesmente o telefone celular que deve receber a mensagem SMS. Desde que o telefone seja válido, ele pode estar em qualquer formato, com ou sem caracteres especiais. O gateway usa apenas os dígitos que encontrar, e adiciona automaticamente DDD e DDI de acordo com o número de dígitos. (O arquivo-fonte sms.py contém o DDD e DDI padrões para envio de mensagens.)
 
@@ -111,7 +113,7 @@ A mensagem é, naturalmente, a mensagem a ser enviada. Ela deve atender aos segu
 
 1) Ser compatível com o charset indicado (provavelmente será “ascii”).
 
-2) Obedecer ao limite de 140 caracteres, incluindo o valor “origem” configurado em sms.py.
+2) Obedecer ao limite de 140 caracteres, e esse limite inclui o valor “origem” configurado em sms.py.
 
 3) Mensagens acentuadas têm limite de 70 caracteres.
 
@@ -169,7 +171,7 @@ Confirmacao;ID;dd/mm/yyyy hh:mm:ss;status
 
 A palavra “Confirmacao” é fixa e identifica o significado do registro. 
 
-O ID é o familiar identificar único da mensagem, que o sistema ERP pode usar para relacionar a confirmação com a mensagem originalmente enviada.
+O ID é o familiar identificador único da mensagem, que o sistema ERP pode usar para relacionar a confirmação com a mensagem originalmente enviada.
 
 A hora indica quando a confirmação foi obtida.
 
@@ -268,7 +270,8 @@ No nível de comunicação entre este gateway e o provedor, há também duas for
 Sem dúvida o call-back é mais poderoso, pois recebemos a mensagem imediatamente após envio do cliente, e a resposta também pode ser imediata. Por outro lado, o call-back implica em haver uma porta aberta no servidor para a Internet. Isto traz implicações de segurança e administração do servidor.
 
 O provedor Zenvia só permite o recebimento de mensagens via call-back, embora permita a confirmação de envio pelos dois métodos. Assim, este gateway não precisa ficar exposto à Internet se for utilizado apenas para enviar mensagens. (Neste caso a configuração "zenvia_confirm_http" no arquivo sms.py deve ser igual a False, para que as confirmações sejam obtidas por polling.)
-Emitente das mensagens
+
+# Emitente das mensagens
 
 Quando o cliente recebe uma mensagem SMS, o número de 5 ou 6 dígitos de origem é o do provedor, a não ser que se contrate um número exclusivo. (O número exclusivo também permite que o cliente inicie uma interação, conforme foi explicado no tópico anterior.)
 
